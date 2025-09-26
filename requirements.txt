@@ -1,20 +1,7 @@
-# Core framework
-streamlit==1.39.0
+streamlit
+tensorflow-cpu
+numpy
+opencv-python
+pillow
+opencv-contrib-python
 
-# Machine learning / deep learning (CPU version for Streamlit Cloud)
-tensorflow-cpu==2.15.0
-
-# Image processing
-opencv-python==4.10.0.84
-pillow==10.4.0
-
-# Math / scientific computing
-numpy==1.26.4
-scipy==1.14.1
-
-# Plotting
-matplotlib==3.9.2
-
-# Data handling
-pandas==2.2.3
-scikit-learn==1.5.2
