@@ -135,12 +135,12 @@ This project was collaboratively developed by:
 
 - **EDUPULAPATI SAI PRANEETH** – **Project Lead**. Led the overall development, designed the AI model, implemented the Streamlit web interface, and integrated advanced features like Grad-CAM visualization and automated report generation.  
 - **HARSHAVARDHAN KURAPATI** – Contributed to data preprocessing, model training experiments, and validation of results. Assisted in generating patient history management features.  
-- **MAMIDI YASWANTH** – Worked on image processing, UI enhancements, and debugging the application to ensure smooth user experience.
+- **MADAMANCHI YASWANTH** – Worked on image processing, UI enhancements, and debugging the application to ensure smooth user experience.
 
 The project benefited from the **combined effort** of all team members, while Praneeth took a lead role in both design and execution of the core AI functionality.
 
 ## 📱 Contact
-Created by **EDUPULAPATI SAI PRANEETH** (Project Lead) and Team: **Harshavardhan Kurapati**, **Mamidi Yaswanth**.
+Created by **EDUPULAPATI SAI PRANEETH** (Project Lead) and Team: **Harshavardhan Kurapati**, **Madamanchi Yaswanth**.
 
 - GitHub: [https://github.com/SaiPraneeth-E](https://github.com/SaiPraneeth-E)  
 - LinkedIn: [https://linkedin.com/in/SaiPraneeth-E](https://linkedin.com/in/SaiPraneeth-E)
