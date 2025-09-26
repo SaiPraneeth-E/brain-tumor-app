@@ -4,7 +4,7 @@ streamlit==1.50.0
 # Machine learning / deep learning
 tensorflow-cpu==2.20.0
 
-# Image processing (headless avoids libGL issues)
+# Image processing (headless avoids libGL errors)
 opencv-python-headless==4.10.0.84
 pillow==10.4.0
 
@@ -19,5 +19,5 @@ matplotlib==3.9.2
 pandas==2.2.3
 scikit-learn==1.5.2
 
-# Word document handling
-python-docx==0.8.12
+# Word document handling (latest Python 3.13 compatible)
+python-docx==1.2.0
