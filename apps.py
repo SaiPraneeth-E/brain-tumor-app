@@ -27,7 +27,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 # ==============================================================================
 class Config:
     """Holds all static configuration for the app."""
-    APP_TITLE = "Advanced Brain Tumor Analysis"
+    APP_TITLE = "NeuroScan AI – Revolutionizing Brain Tumor Analysis"
     PAGE_ICON = "🧠"
     CLASS_NAMES = ['Glioma Tumor', 'Meningioma Tumor', 'No Tumor', 'Pituitary Tumor']
     IMG_SIZE = 224
