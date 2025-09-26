@@ -1,5 +1,7 @@
 streamlit
-tensorflow
+tensorflow-cpu
 numpy
 opencv-python
 pillow
+opencv-contrib-python
+
