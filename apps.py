@@ -340,5 +340,5 @@ def main():
     with tab3:
         render_about_page()
 
-if _name_ == "__main__":
+if __name__ == "__main__":
     main()
