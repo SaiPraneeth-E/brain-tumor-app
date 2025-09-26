@@ -32,7 +32,7 @@ class Config:
     CLASS_NAMES = ['Glioma Tumor', 'Meningioma Tumor', 'No Tumor', 'Pituitary Tumor']
     IMG_SIZE = 224
 
-    BASE_DIR = os.path.dirname(os.path.abspath(_file_))
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     CLASSIFICATION_MODEL_PATH = os.path.join(BASE_DIR, 'best_brain_tumor_model_efficient_refined.h5')
 
 if not os.path.exists(Config.CLASSIFICATION_MODEL_PATH):
@@ -340,5 +340,5 @@ def main():
     with tab3:
         render_about_page()
 
-if _name_ == "_main_":
+if _name_ == "__main__":
     main()
