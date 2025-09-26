@@ -210,7 +210,6 @@ def render_analysis_page():
         handle_analysis(patient_id, patient_name, patient_age, patient_gender, uploaded_file)
 
 def handle_analysis(patient_id, patient_name, patient_age, patient_gender, uploaded_file):
-    # (This function is unchanged)
     st.markdown('<div class="custom-section-container">', unsafe_allow_html=True)
     st.markdown('<h2 class="custom-section-header">🔬 Analysis Results</h2>', unsafe_allow_html=True)
     model = load_keras_model(Config.CLASSIFICATION_MODEL_PATH)
@@ -227,9 +226,11 @@ def handle_analysis(patient_id, patient_name, patient_age, patient_gender, uploa
         grad_cam_image = generate_grad_cam(model, preprocessed_img, original_image, class_index)
         tumor_details = get_tumor_details(class_name)
     col1, col2, col3 = st.columns(3)
-    col1.image(original_image, caption='Original MRI Scan', use_column_width=True)
-    col2.image(localized_image, caption='Mock Tumor Localization', use_column_width=True)
-    col3.image(grad_cam_image, caption='Grad-CAM Heatmap', use_column_width=True)
+    # --- CORRECTED CODE HERE ---
+    col1.image(original_image, caption='Original MRI Scan', use_container_width=True)
+    col2.image(localized_image, caption='Mock Tumor Localization', use_container_width=True)
+    col3.image(grad_cam_image, caption='Grad-CAM Heatmap', use_container_width=True)
+    # --- END OF CORRECTION ---
     st.markdown("<br>", unsafe_allow_html=True)
     patient_info = {"Name": patient_name, "Age": str(patient_age), "Gender": patient_gender, "Patient ID": patient_id}
     st.markdown(generate_html_report(patient_info, classification_result, tumor_details, tumor_detected), unsafe_allow_html=True)
@@ -273,7 +274,7 @@ def render_sidebar():
     """Renders the feature-rich sidebar."""
     st.sidebar.title("App Controls & Info")
     st.sidebar.markdown("---")
-    
+
     # Section 1: Model Information
     st.sidebar.subheader("🤖 Model Information")
     st.sidebar.info(
@@ -298,7 +299,7 @@ def render_sidebar():
         col2.metric("No Tumor", no_tumor_count)
     else:
         st.sidebar.write("No analyses performed yet in this session.")
-    
+
     # Section 3: Data Management
     if st.sidebar.button("🗑 Clear Session History"):
         st.session_state.patient_data = pd.DataFrame(columns=["Timestamp", "Patient ID", "Name", "Age", "Gender", "Diagnosis", "Confidence"])
