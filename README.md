@@ -21,8 +21,10 @@ NeuroScan AI is a sophisticated, interactive web application designed for the pr
 - **Patient History Management:** Saves session results and allows downloading as `.csv`.
 - **Modern & Responsive UI:** Dark-themed, intuitive interface built with Streamlit.
 - **Feature-Rich Sidebar:** Displays dynamic session statistics, data management, and resource links.
-- ![Project Screenshot](https://i.postimg.cc/R0Yn5t4j/Screenshot-2025-09-27-005227.png)
-
+![Project Screenshot](https://i.postimg.cc/R0Yn5t4j/Screenshot-2025-09-27-005227.png)
+![Project Screenshot](https://i.postimg.cc/Nf0YTz1C/Screenshot-2025-09-27-005530.png)
+![Project Screenshot](https://i.postimg.cc/8PW8hg7K/Screenshot-2025-09-27-005936.png)
+![Project Screenshot](https://i.postimg.cc/rpkPGDv3/Screenshot-2025-09-27-005742.png)
 ---
 
 ## 🧠 Model Architecture & Training
@@ -38,7 +40,7 @@ NeuroScan AI is a sophisticated, interactive web application designed for the pr
 - **Training Strategy:**
   1. Feature extraction: Train custom head, freeze base model.  
   2. Fine-tuning: Unfreeze entire model, train with low learning rate.
-
+![Project Screenshot](https://i.postimg.cc/BZHNpSCH/Screenshot-2025-09-27-010214.png)
 ---
 
 ## 🛠️ Technology Stack
