@@ -8,7 +8,7 @@ NeuroScan AI is a sophisticated, interactive web application designed for the pr
 
 🔴 Live Application Link: [NeuroScan AI](https://neuro-scan-ai.streamlit.app/)
 
-![alt text](./assets/demo.gif)
+![Project Screenshot](https://i.ibb.co/WNrYHTNc)
 
 ---
 
