@@ -1,7 +1,10 @@
-streamlit
-tensorflow-cpu
-numpy
-opencv-python
-pillow
-opencv-contrib-python
-
+streamlit==1.39.0
+tensorflow-cpu==2.15.0
+opencv-python-headless==4.10.0.84
+pillow==10.4.0
+numpy==1.26.4
+scipy==1.14.1
+matplotlib==3.9.2
+pandas==2.2.3
+scikit-learn==1.5.2
+python-docx==0.8.12
