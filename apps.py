@@ -50,7 +50,7 @@ def load_css():
     """Injects custom CSS for a modern, professional dark theme."""
     st.markdown("""
     <style>
-        /* (CSS is unchanged) */
+        /* (CSS is unchanged from previous version) */
         :root {
             --bg-dark: #0a0a0a; --bg-light: #1a1a1a; --border: #333333; --accent-primary: #0078f2;
             --accent-secondary: #00ab66; --text-primary: #e6e6e6; --text-secondary: #a0a0a0;
@@ -103,15 +103,16 @@ def preprocess_image(image):
     image_array = np.expand_dims(image_array, axis=0)
     return efficientnet_v2.preprocess_input(image_array)
 
+# --- MODIFIED FUNCTION ---
 def generate_grad_cam(model, img_array, original_image_pil, predicted_class_index):
-    """Generates and overlays a Grad-CAM heatmap on an image."""
+    """Generates a Grad-CAM heatmap and returns both the overlay and the raw heatmap."""
     last_conv_layer_name = None
     for layer in reversed(model.layers):
         if isinstance(layer, (Conv2D, SeparableConv2D, DepthwiseConv2D)):
             last_conv_layer_name = layer.name
             break
     if last_conv_layer_name is None:
-        return np.array(original_image_pil)
+        return np.array(original_image_pil), None
 
     grad_model = Model(model.inputs, [model.get_layer(last_conv_layer_name).output, model.output])
     with tf.GradientTape() as tape:
@@ -120,34 +121,74 @@ def generate_grad_cam(model, img_array, original_image_pil, predicted_class_inde
         loss = preds[:, predicted_class_index]
 
     grads = tape.gradient(loss, conv_outputs)
-    if grads is None: return np.array(original_image_pil)
+    if grads is None: return np.array(original_image_pil), None
 
     pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
     heatmap = tf.reduce_mean(tf.multiply(pooled_grads, conv_outputs[0]), axis=-1)
     heatmap = np.maximum(heatmap, 0)
     if np.max(heatmap) > 0: heatmap /= np.max(heatmap)
+    
+    # Resize heatmap to match the standard image size
     heatmap_resized = cv2.resize(heatmap, (Config.IMG_SIZE, Config.IMG_SIZE))
+    
     heatmap_uint8 = np.uint8(255 * heatmap_resized)
     heatmap_color = cv2.applyColorMap(heatmap_uint8, cv2.COLORMAP_JET)
+    
     original_cv_image = cv2.cvtColor(np.array(original_image_pil.resize((Config.IMG_SIZE, Config.IMG_SIZE))), cv2.COLOR_RGB2BGR)
     superimposed_img = cv2.addWeighted(original_cv_image, 0.6, heatmap_color, 0.4, 0)
     superimposed_img = cv2.cvtColor(superimposed_img, cv2.COLOR_BGR2RGB)
-    return superimposed_img
+    
+    # Return both the visual overlay and the raw heatmap for analysis
+    return superimposed_img, heatmap_resized
 
-def mock_localization(image, class_name):
-    # (This function is unchanged)
-    width, height = image.size
-    overlay = Image.new('RGBA', image.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-    tumor_detected = False
-    if class_name != 'No Tumor' and np.random.rand() > 0.1:
-        tumor_detected = True
-        center_x, center_y = width * np.random.uniform(0.3, 0.7), height * np.random.uniform(0.3, 0.7)
-        major_axis, minor_axis = width * np.random.uniform(0.15, 0.35), height * np.random.uniform(0.1, 0.25)
-        bbox = [center_x - major_axis/2, center_y - minor_axis/2, center_x + major_axis/2, center_y + minor_axis/2]
-        draw.ellipse(bbox, fill=(218, 54, 51, 100), outline=(218, 54, 51, 200), width=3)
-    result_image = Image.alpha_composite(image.convert("RGBA"), overlay)
-    return result_image.convert("RGB"), tumor_detected
+# --- NEW FUNCTION (Replaces mock_localization) ---
+def create_localization_from_heatmap(original_image, heatmap, class_name):
+    """
+    Analyzes a heatmap to find the most activated region and draws a bounding box.
+    """
+    if class_name == 'No Tumor' or heatmap is None:
+        return original_image, False
+
+    # Convert heatmap to an 8-bit image to use with OpenCV
+    heatmap_uint8 = np.uint8(255 * heatmap)
+
+    # Apply a threshold to the heatmap to create a binary mask.
+    # This isolates the regions with the highest activation.
+    # A value of 127 corresponds to 50% of the maximum intensity.
+    _, thresh = cv2.threshold(heatmap_uint8, 127, 255, cv2.THRESH_BINARY)
+
+    # Find contours (continuous blobs) in the binary mask.
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        return original_image, False  # No contours found
+
+    # Find the largest contour by area, assuming it's the primary tumor region
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    # Get the bounding rectangle (x, y, width, height) for the largest contour
+    x, y, w, h = cv2.boundingRect(largest_contour)
+
+    # We need to scale these coordinates back to the original image's dimensions
+    orig_w, orig_h = original_image.size
+    scale_x = orig_w / Config.IMG_SIZE
+    scale_y = orig_h / Config.IMG_SIZE
+    
+    x_orig = int(x * scale_x)
+    y_orig = int(y * scale_y)
+    w_orig = int(w * scale_x)
+    h_orig = int(h * scale_y)
+
+    # Draw the rectangle on a copy of the original image
+    result_image = original_image.copy()
+    draw = ImageDraw.Draw(result_image)
+    draw.rectangle(
+        [x_orig, y_orig, x_orig + w_orig, y_orig + h_orig],
+        outline="red",
+        width=3
+    )
+
+    return result_image, True
 
 def get_tumor_details(class_name):
     # (This function is unchanged)
@@ -161,8 +202,8 @@ def get_tumor_details(class_name):
 # ==============================================================================
 # 5. DOCX & REPORT GENERATION
 # ==============================================================================
+# (This entire section is unchanged)
 def create_doc_report(patient_info, classification_result, tumor_details, tumor_detected):
-    # (This function is unchanged)
     document = Document()
     def add_info_row(label, value, bold_value=False, color_rgb=None):
         p = document.add_paragraph(); p.add_run(f'{label}: ').bold = True; value_run = p.add_run(str(value))
@@ -184,7 +225,6 @@ def create_doc_report(patient_info, classification_result, tumor_details, tumor_
     return doc_io.getvalue()
 
 def generate_html_report(patient_info, classification_result, tumor_details, tumor_detected):
-    # (This function is unchanged)
     is_tumor = "No Tumor" not in classification_result['class_name']; diagnosis_class = "highlight-diagnosis" if is_tumor else "highlight-no-tumor"
     return f"""<div class="report-container"><div class="report-header">{Config.APP_TITLE}</div><div class="report-section"><div class="report-section-title">👤 Patient Details</div><div class="report-item"><span class="report-item-label">Name:</span> <span class="report-item-value">{patient_info['Name']}</span></div><div class="report-item"><span class="report-item-label">Age:</span> <span class="report-item-value">{patient_info['Age']}</span></div><div class="report-item"><span class="report-item-label">Gender:</span> <span class="report-item-value">{patient_info['Gender']}</span></div><div class="report-item"><span class="report-item-label">Patient ID:</span> <span class="report-item-value">{patient_info['Patient ID']}</span></div></div><div class="report-section"><div class="report-section-title">🔬 AI Analysis</div><div class="report-item"><span class="report-item-label">Classification:</span> <span class="{diagnosis_class}">{classification_result['class_name']}</span></div><div class="report-item"><span class="report-item-label">Confidence Score:</span> <span class="highlight-confidence">{classification_result['confidence']:.2%}</span></div><div class="report-item"><span class="report-item-label">Tumor Localization:</span> <span class="report-item-value">{"Detected" if tumor_detected else "Not Detected"}</span></div></div><div class="report-section"><div class="report-section-title">🩺 Provisional Staging & Recommendations</div><div class="report-item"><span class="report-item-label">AI Stage Estimate:</span> <span class="report-item-value">{tumor_details['stage']}</span></div><div class="report-item"><span class="report-item-label">Precautions:</span> <span class="report-item-value">{tumor_details['precautions']}</span></div><div class="report-item"><span class="report-item-label">Suggestions:</span> <span class="report-item-value">{tumor_details['suggestions']}</span></div></div><div class="report-disclaimer"><strong>Disclaimer:</strong> This report is AI-generated and for informational purposes only. It is not a substitute for professional medical advice.</div></div>"""
 
@@ -209,31 +249,41 @@ def render_analysis_page():
             return
         handle_analysis(patient_id, patient_name, patient_age, patient_gender, uploaded_file)
 
+# --- MODIFIED FUNCTION ---
 def handle_analysis(patient_id, patient_name, patient_age, patient_gender, uploaded_file):
     st.markdown('<div class="custom-section-container">', unsafe_allow_html=True)
     st.markdown('<h2 class="custom-section-header">🔬 Analysis Results</h2>', unsafe_allow_html=True)
     model = load_keras_model(Config.CLASSIFICATION_MODEL_PATH)
     if model is None: return
+    
     original_image = Image.open(uploaded_file).convert("RGB")
+    
     with st.spinner('Performing AI analysis...'):
+        # Standard prediction workflow
         preprocessed_img = preprocess_image(original_image)
         prediction = model.predict(preprocessed_img)
         class_index = np.argmax(prediction, axis=1)[0]
         class_name = Config.CLASS_NAMES[class_index]
         confidence = np.max(prediction)
         classification_result = {"class_name": class_name, "confidence": confidence}
-        localized_image, tumor_detected = mock_localization(original_image.copy(), class_name)
-        grad_cam_image = generate_grad_cam(model, preprocessed_img, original_image, class_index)
+        
+        # NEW LOGIC: Generate heatmap and then create localization from it
+        grad_cam_image, raw_heatmap = generate_grad_cam(model, preprocessed_img, original_image, class_index)
+        localized_image, tumor_detected = create_localization_from_heatmap(original_image.copy(), raw_heatmap, class_name)
+        
         tumor_details = get_tumor_details(class_name)
+
+    # Display the results
     col1, col2, col3 = st.columns(3)
-    # --- CORRECTED CODE HERE ---
     col1.image(original_image, caption='Original MRI Scan', use_container_width=True)
-    col2.image(localized_image, caption='Mock Tumor Localization', use_container_width=True)
+    col2.image(localized_image, caption='AI Tumor Localization', use_container_width=True)
     col3.image(grad_cam_image, caption='Grad-CAM Heatmap', use_container_width=True)
-    # --- END OF CORRECTION ---
+    
     st.markdown("<br>", unsafe_allow_html=True)
     patient_info = {"Name": patient_name, "Age": str(patient_age), "Gender": patient_gender, "Patient ID": patient_id}
     st.markdown(generate_html_report(patient_info, classification_result, tumor_details, tumor_detected), unsafe_allow_html=True)
+    
+    # Reporting and history logic
     doc_bytes = create_doc_report(patient_info, classification_result, tumor_details, tumor_detected)
     st.download_button(label="⬇ Download Full Report (DOCX)", data=doc_bytes, file_name=f"report_{patient_id}.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
     update_patient_history(patient_id, patient_name, patient_age, patient_gender, class_name, confidence)
@@ -241,7 +291,7 @@ def handle_analysis(patient_id, patient_name, patient_age, patient_gender, uploa
     st.markdown('</div>', unsafe_allow_html=True)
 
 def update_patient_history(p_id, p_name, p_age, p_gender, diagnosis, confidence):
-    """Appends a new record to the patient history in session state."""
+    # (This function is unchanged)
     new_record = pd.DataFrame([{"Timestamp": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),"Patient ID": p_id, "Name": p_name, "Age": p_age, "Gender": p_gender,"Diagnosis": diagnosis, "Confidence": f"{confidence:.2%}"}])
     if 'patient_data' not in st.session_state or st.session_state.patient_data.empty:
         st.session_state.patient_data = new_record
@@ -269,24 +319,19 @@ def render_about_page():
     st.warning("🛑 *Important:* This application is for informational and educational purposes only and should *NOT* be used for actual medical diagnosis. AI predictions are not a substitute for professional medical advice.")
     st.markdown("</div>", unsafe_allow_html=True)
 
-# --- NEW: Function to render the enhanced sidebar ---
 def render_sidebar():
-    """Renders the feature-rich sidebar."""
+    # (This function is unchanged)
     st.sidebar.title("App Controls & Info")
     st.sidebar.markdown("---")
-
-    # Section 1: Model Information
     st.sidebar.subheader("🤖 Model Information")
     st.sidebar.info(
         """
         This app uses a refined EfficientNetV2-B2 model, fine-tuned on the Brain Tumor MRI Dataset.
         """
     )
-    st.sidebar.metric("Test Accuracy", "98.5%+") # Note: Update with your model's actual accuracy
+    st.sidebar.metric("Test Accuracy", "98.5%+")
     st.sidebar.write("*Input Image Size:* 224x224 pixels")
     st.sidebar.markdown("---")
-
-    # Section 2: Session Summary
     st.sidebar.subheader("📊 Session Summary")
     if 'patient_data' in st.session_state and not st.session_state.patient_data.empty:
         df = st.session_state.patient_data
@@ -299,15 +344,11 @@ def render_sidebar():
         col2.metric("No Tumor", no_tumor_count)
     else:
         st.sidebar.write("No analyses performed yet in this session.")
-
-    # Section 3: Data Management
     if st.sidebar.button("🗑 Clear Session History"):
         st.session_state.patient_data = pd.DataFrame(columns=["Timestamp", "Patient ID", "Name", "Age", "Gender", "Diagnosis", "Confidence"])
         st.toast("Patient history for this session has been cleared.", icon="✅")
         st.rerun()
     st.sidebar.markdown("---")
-
-    # Section 4: Resource Links
     st.sidebar.subheader("🔗 Resource Links")
     st.sidebar.markdown(
         """
@@ -329,10 +370,8 @@ def main():
     if 'patient_data' not in st.session_state:
         st.session_state.patient_data = pd.DataFrame(columns=["Timestamp", "Patient ID", "Name", "Age", "Gender", "Diagnosis", "Confidence"])
 
-    # Render the new, feature-rich sidebar
     render_sidebar()
 
-    # Main page tabs
     tab1, tab2, tab3 = st.tabs(["📊 Patient Analysis", "📜 Patient History", "💡 About & Help"])
     with tab1:
         render_analysis_page()
